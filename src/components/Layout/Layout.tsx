@@ -1,21 +1,17 @@
-import React from 'react';
+import React, { FC } from 'react';
 import { Banner } from '../Banner';
 import { Footer } from '../Footer';
 import { Nav } from '../Nav';
-// import styles from './Layout.module.scss';
 
-export function Layout({ children }) {
-
+export const Layout: FC = ({ children }) => {
     return (
-        <>
-            <div className="">
-                <Banner message={'Hello world'} />
+        <div>
+            <Banner />
+            <div className="container mx-auto">
                 <Nav />
-                <main className="container mx-auto">
-                    {children}
-                </main>
+                <main className="">{children}</main>
                 <Footer />
             </div>
-        </>
+        </div>
     );
-}
+};

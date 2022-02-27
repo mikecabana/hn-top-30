@@ -1,54 +1,111 @@
 import Head from 'next/head';
-
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
+import { HNItem } from '../lib/models/hacker-news/hn-item.interface';
+import { getTopNHNStories } from '../lib/services/hn-stories';
+import { ExternalLinkIcon, RefreshIcon } from '@heroicons/react/outline';
+import Link from 'next/link';
+import ReactTooltip from 'react-tooltip';
+import { NextPage } from 'next';
 
 // import styles from '../styles/Home.module.scss';
 
-export default function Home() {
+const Home: NextPage = () => {
+    const [stories, setStories] = useState<HNItem[]>([]);
+    const [timestamp, setTimestamp] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(false);
+    const [refreshing, setRefreshing] = useState<boolean>(false);
 
-    return (<Layout>
-        <Head>
-            <title>Create Next App</title>
-            <link rel="icon" href="/favicon.ico" />
-        </Head>
+    const getStories = async () => {
+        try {
+            const data = await getTopNHNStories(30);
 
-        <div className="mb-4">
-            <h1 className="text-center text-5xl">
-                Welcome to <a href="https://nextjs.org">Next.js!</a>
-            </h1>
+            setStories(data);
+            setTimestamp(new Date().toLocaleString());
 
-            <p className="text-center mt-4">
-                Get started by editing <code className="p-1 bg-gray-200 text-gray-600 text-sm rounded">pages/index.tsx</code>
-            </p>
+            ReactTooltip.rebuild();
+        } catch (error: any) {
+            alert(error.message);
+        }
+    };
 
-        </div>
+    const loadStories = async () => {
+        setLoading(true);
+        await getStories();
+        setLoading(false);
+    };
 
-        <div className="grid med:grid-cols-1 lg:grid-cols-2 gap-6">
-            <a href="https://nextjs.org/docs" className="rounded-lg shadow-sm bg-white p-6 border border-gray-200 text-black hover:text-indigo-600 hover:no-underline hover:shadow-md">
-                <h3 className="text-2xl">Documentation &rarr;</h3>
-                <p>Find in-depth information about Next.js features and API.</p>
-            </a>
+    const refreshStories = async () => {
+        setRefreshing(true);
+        await getStories();
+        setRefreshing(false);
+    };
 
-            <a href="https://nextjs.org/learn" className="rounded-lg shadow-sm bg-white p-6 border border-gray-200 text-black hover:text-indigo-600 hover:no-underline hover:shadow-md">
-                <h3 className="text-2xl">Learn &rarr;</h3>
-                <p>Learn about Next.js in an interactive course with quizzes!</p>
-            </a>
+    useEffect(() => {
+        loadStories();
+    }, []);
 
-            <a
-                href="https://github.com/vercel/next.js/tree/master/examples"
-                className="rounded-lg shadow-sm bg-white p-6 border border-gray-200 text-black hover:text-indigo-600 hover:no-underline hover:shadow-md">
-                <h3 className="text-2xl">Examples &rarr;</h3>
-                <p>Discover and deploy boilerplate example Next.js projects.</p>
-            </a>
+    return (
+        <Layout>
+            <Head>
+                <title>Hacker News Top 30</title>
+                <link rel="icon" href="/favicon.ico" />
+            </Head>
 
-            <a
-                href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-                className="rounded-lg shadow-sm bg-white p-6 border border-gray-200 text-black hover:text-indigo-600 hover:no-underline hover:shadow-md">
-                <h3 className="text-2xl" >Deploy &rarr;</h3>
-                <p>Instantly deploy your Next.js site to a public URL with Vercel.</p>
-            </a>
-        </div>
+            <div className="flex justify-between my-2">
+                <span className='text-sm animate-pulse'>{loading && 'Loading...'}</span>
+                <button
+                    className={`flex items-center justify-center py-1 px-2 text-sm ${
+                        loading || refreshing ? 'text-gray-300' : 'hover:underline hover:text-orange-600'
+                    }`}
+                    onClick={() => refreshStories()}
+                    disabled={loading || refreshing}
+                    data-tip={`Last refresh ${timestamp ? timestamp : 'never'}`}
+                >
+                    <span className="mr-2">Refresh</span>{' '}
+                    <RefreshIcon className={`w-4 h-4 ${refreshing && 'animate-spin'}`} />
+                </button>
+            </div>
 
-    </Layout>);
-}
+            <table className="text-sm w-full bg-gray-100">
+                <thead>
+                    <tr>
+                        <th className="px-2 py-1 border-2 border-l-0 border-white">#</th>
+                        <th className="px-2 py-1 border-2 border-white text-left">Title</th>
+                        <th className="px-2 py-1 border-2 border-white text-right">Comments</th>
+                        <th className="px-2 py-1 border-2 border-r-0 border-white"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {stories.map((story, i) => (
+                        <tr key={i}>
+                            <td className="px-2 py-1 border-2 border-l-0 border-white text-center">{i + 1}</td>
+                            <td className="px-2 py-1 border-2 border-white">
+                                <div className="mb-1">
+                                    <Link href={`/${story.id}`}>
+                                        <a className="hover:underline hover:text-orange-600">{story.title}</a>
+                                    </Link>
+                                </div>
+                                <div className="text-xs text-gray-400">by: {story.by}</div>
+                            </td>
+                            <td className="px-2 py-1 border-2 border-white text-right">{story.descendants}</td>
+                            <td className="px-2 py-1 border-2 border-r-0 border-white text-center">
+                                <a
+                                    href={story.url}
+                                    target="_blank"
+                                    className="flex justify-center hover:text-orange-600"
+                                    data-tip="Go to article"
+                                >
+                                    <ExternalLinkIcon className="w-4 h-4" />
+                                </a>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+            {/* <ReactTooltip /> */}
+        </Layout>
+    );
+};
+
+export default Home;

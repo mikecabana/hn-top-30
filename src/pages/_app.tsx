@@ -1,4 +1,5 @@
 import type { AppProps, NextWebVitalsMetric /*, AppContext */ } from 'next/app';
+import ReactTooltip from 'react-tooltip';
 
 import '../styles/globals.scss';
 
@@ -9,7 +10,12 @@ export function reportWebVitals(metric: NextWebVitalsMetric) {
 }
 
 function MyApp({ Component, pageProps }: AppProps) {
-    return <Component {...pageProps} />;
+    return (
+        <>
+            <Component {...pageProps} />
+            <ReactTooltip />
+        </>
+    );
 }
 
 export default MyApp;

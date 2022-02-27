@@ -1,10 +1,21 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent } from 'react';
 
 export const Footer: FunctionComponent = () => {
-
-    return <div className="bg-white mt-8">
-        <div className="container mx-auto text-center border-t border-gray-200 py-8">
-            {new Date().getFullYear()} &copy; Next Typescript Tailwind Template
+    return (
+        <div className="mt-8 py-8">
+            <div className="text-center mb-4 text-xs">{new Date().getFullYear()} &copy; Hacker News Top 30</div>
+            <div className="text-center text-xs">
+                Developed and designed by{' '}
+                <a
+                    className="font-semibold hover:underline hover:text-orange-600"
+                    href="https://mikecabana.com"
+                    target="_blank"
+                >
+                    {' '}
+                    Mike Cabana
+                </a>{' '}
+                to have that Hacker News look and feel.
+            </div>
         </div>
-    </div>
-}
+    );
+};
