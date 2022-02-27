@@ -2,11 +2,6 @@ import React from 'react';
 import Link from 'next/link';
 import { NewspaperIcon } from '@heroicons/react/outline';
 
-import { MegaMenu } from '../MegaMenu';
-import { MegaMenuMobile } from '../MegaMenuMobile';
-
-// import styles from './Nav.module.scss';
-
 export type NavProps = {};
 
 export function Nav({}: NavProps) {
@@ -15,7 +10,8 @@ export function Nav({}: NavProps) {
             <div className="flex items-center">
                 <Link href="/">
                     <a className="mr-8 flex items-center">
-                        <NewspaperIcon className="h-10 w-10 text-orange-600 mr-4" /> <span className='md:text-2xl text-md font-semibold'>HN Top 30</span>
+                        <NewspaperIcon className="h-10 w-10 text-orange-600 mr-4" />{' '}
+                        <span className="md:text-2xl text-md font-semibold">HN Top 30</span>
                     </a>
                 </Link>
 
@@ -29,9 +25,7 @@ export function Nav({}: NavProps) {
             </div>
 
             <div className="flex items-center">
-                <div className="flex-grow flex items-center md:hidden">
-                    {/* <MegaMenuMobile /> */}
-                </div>
+                <div className="flex-grow flex items-center md:hidden">{/* right items */}</div>
             </div>
         </div>
     );
