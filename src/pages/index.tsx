@@ -2,48 +2,18 @@ import Head from 'next/head';
 import { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
 import { HNItem } from '../lib/models/hacker-news/hn-item.interface';
-import { getTopNHNStories } from '../lib/services/hn-stories';
+import { getTopHNNStories } from '../lib/services/hn-stories';
 import { ExternalLinkIcon, RefreshIcon } from '@heroicons/react/outline';
 import Link from 'next/link';
 import ReactTooltip from 'react-tooltip';
 import { NextPage } from 'next';
 
-// import styles from '../styles/Home.module.scss';
+import { useQuery } from 'react-query';
 
 const Home: NextPage = () => {
-    const [stories, setStories] = useState<HNItem[]>([]);
-    const [timestamp, setTimestamp] = useState<string>('');
-    const [loading, setLoading] = useState<boolean>(false);
-    const [refreshing, setRefreshing] = useState<boolean>(false);
-
-    const getStories = async () => {
-        try {
-            const data = await getTopNHNStories(30);
-
-            setStories(data);
-            setTimestamp(new Date().toLocaleString());
-
-            ReactTooltip.rebuild();
-        } catch (error: any) {
-            alert(error.message);
-        }
-    };
-
-    const loadStories = async () => {
-        setLoading(true);
-        await getStories();
-        setLoading(false);
-    };
-
-    const refreshStories = async () => {
-        setRefreshing(true);
-        await getStories();
-        setRefreshing(false);
-    };
-
-    useEffect(() => {
-        loadStories();
-    }, []);
+    const { data, refetch, isFetching, isLoading, dataUpdatedAt } = useQuery('get-stories-top-30', () => getTopHNNStories(30), {
+        onSuccess: () => ReactTooltip.rebuild(),
+    });
 
     return (
         <Layout>
@@ -53,17 +23,17 @@ const Home: NextPage = () => {
             </Head>
 
             <div className="flex justify-between my-2">
-                <span className='text-sm animate-pulse'>{loading && 'Loading...'}</span>
+                <span className="text-sm animate-pulse">{isLoading && 'Loading...'}</span>
                 <button
                     className={`flex items-center justify-center py-1 px-2 text-sm ${
-                        loading || refreshing ? 'text-gray-300' : 'hover:underline hover:text-orange-600'
+                        isFetching ? 'text-gray-300' : 'hover:underline hover:text-orange-600'
                     }`}
-                    onClick={() => refreshStories()}
-                    disabled={loading || refreshing}
-                    data-tip={`Last refresh ${timestamp ? timestamp : 'never'}`}
+                    onClick={() => refetch()}
+                    disabled={isFetching}
+                    data-tip={`Last refresh ${dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleString() : 'never'}`}
                 >
-                    <span className="mr-2">Refresh</span>{' '}
-                    <RefreshIcon className={`w-4 h-4 ${refreshing && 'animate-spin'}`} />
+                    <span className="mr-2">{isFetching ? 'Refreshing' : 'Refresh'}</span>{' '}
+                    <RefreshIcon className={`w-4 h-4 ${isFetching && 'animate-spin'}`} />
                 </button>
             </div>
 
@@ -77,7 +47,7 @@ const Home: NextPage = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {stories.map((story, i) => (
+                    {data?.map((story, i) => (
                         <tr key={i}>
                             <td className="px-2 py-1 border-2 border-l-0 border-white text-center">{i + 1}</td>
                             <td className="px-2 py-1 border-2 border-white">
@@ -103,7 +73,6 @@ const Home: NextPage = () => {
                     ))}
                 </tbody>
             </table>
-            {/* <ReactTooltip /> */}
         </Layout>
     );
 };

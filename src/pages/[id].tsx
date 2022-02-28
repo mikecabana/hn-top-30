@@ -1,109 +1,106 @@
 import { RefreshIcon } from '@heroicons/react/outline';
 import { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
 import { Layout } from '../components';
 import { getHNItem } from '../lib/api/hacker-news';
-import { HNItem } from '../lib/models/hacker-news/hn-item.interface';
 import { getHNStoryComments, getHNUserSubmittedCount } from '../lib/services/hn-stories';
 import ReactTooltip from 'react-tooltip';
 import Head from 'next/head';
+import { useQuery } from 'react-query';
 
 const Item: NextPage = () => {
-    const [item, setItem] = useState<HNItem>();
-    const [comments, setComments] = useState<HNItem[]>([]);
-    const [commentCounts, setCommentCounts] = useState<number[]>([]);
-
-    const [timestamp, setTimestamp] = useState<string>('');
-
-    const [loading, setLoading] = useState<boolean>(false);
-    const [refreshing, setRefreshing] = useState<boolean>(false);
-
     const router = useRouter();
 
-    const { id } = router.query;
+    const id = typeof router.query?.id === 'string' ? router.query.id : '';
 
-    const getUserSubmittedCount = async (comments: HNItem[]) => {
-        const counts = [];
+    const { data, refetch, isFetching, isLoading, dataUpdatedAt } = useQuery(
+        `get-item-${id}`,
+        () => getHNItem(parseInt(id as string, 10)),
+        {
+            onSuccess: (item) => {
+                ReactTooltip.rebuild();
 
-        console.log(comments);
-
-        for (const comment of comments) {
-            const count = await getHNUserSubmittedCount(comment.by);
-            counts.push(count);
+                // I suspect we need to wait for the next event loop to call `refetchComments`.
+                // Needs investigating as to why `get-top-10-comments-${id}` query doesn't run.
+                setTimeout(() => refetchComments(), 1);
+            },
+            enabled: !!id,
         }
+    );
 
-        setCommentCounts(counts);
-    };
+    const {
+        data: comments,
+        refetch: refetchComments,
+        isFetching: isFetchingComments,
+        isLoading: isLoadingComments,
+    } = useQuery(`get-top-10-comments-${id}`, () => getHNStoryComments(data?.kids || [], 10), {
+        onSuccess: () => {
+            refetchUserSubmissions();
+        },
+        enabled: !!data,
+    });
 
-    const getComments = async (kids: number[]) => {
-        try {
-            const data = await getHNStoryComments(kids, 10);
-            setComments(data);
-            await getUserSubmittedCount(data);
-        } catch (error: any) {
-            alert(error.message);
-        }
-    };
+    const {
+        data: userSubmissions,
+        refetch: refetchUserSubmissions,
+        isFetching: isFetchingUserSubmissions,
+        isLoading: isLoadingUserSubmissions,
+    } = useQuery(
+        `get-top-10-comments-user-submission-count-${id}`,
+        async () => {
+            const counts = [];
 
-    const getItem = async () => {
-        try {
-            const data = await getHNItem(parseInt(id as string, 10));
-            setItem(data);
-            if (data?.kids) {
-                await getComments(data.kids);
+            for (const comment of comments || []) {
+                const count = await getHNUserSubmittedCount(comment.by);
+                counts.push(count);
             }
-            setTimestamp(new Date().toLocaleString());
 
-            ReactTooltip.rebuild();
-        } catch (error: any) {
-            alert(error.message);
+            return counts;
+        },
+        {
+            enabled: !!comments,
         }
-    };
-
-    const loadItem = async () => {
-        setLoading(true);
-        await getItem();
-        setLoading(false);
-    };
-
-    const refreshItem = async () => {
-        setRefreshing(true);
-        await getItem();
-        setRefreshing(false);
-    };
-
-    useEffect(() => {
-        if (id) {
-            loadItem();
-        }
-    }, [id]);
+    );
 
     return (
         <Layout>
             <Head>
-                <title>{item?.title} | Hacker News Top 30</title>
+                <title>{data?.title} | Hacker News Top 30</title>
             </Head>
 
             <div className="bg-gray-100 mb-2 p-2">
-                <div>{item?.title && <h1 className="text-xl">{item?.title}</h1>}</div>
-                <div>{item?.by && <span className="text-sm">by: {item?.by}</span>}</div>
+                <h1 className="text-xl">{data?.title}</h1>
+                <div>
+                    <span className="text-sm">by: {data?.by}</span>
+                </div>
             </div>
             <div className="flex justify-between my-2">
-                <span className="text-sm">{loading && 'Loading...'}</span>
+                <span className="text-sm">
+                    {(isLoading || isLoadingComments || isLoadingUserSubmissions) && 'Loading...'}
+                </span>
                 <button
                     className={`flex items-center justify-center py-1 px-2 text-sm ${
-                        loading || refreshing ? 'text-gray-300' : 'hover:underline hover:text-orange-600'
+                        isFetching || isFetchingComments || isFetchingUserSubmissions
+                            ? 'text-gray-300'
+                            : 'hover:underline hover:text-orange-600'
                     }`}
-                    onClick={() => refreshItem()}
-                    disabled={loading || refreshing}
-                    data-tip={`Last refresh ${timestamp ? timestamp : 'never'}`}
+                    onClick={() => refetch()}
+                    disabled={isFetching || isFetchingComments || isFetchingUserSubmissions}
+                    data-tip={`Last refresh ${dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleString() : 'never'}`}
                 >
                     <span className="mr-2">Refresh</span>{' '}
-                    <RefreshIcon className={`w-4 h-4 ${refreshing && 'animate-spin'}`} />
+                    <RefreshIcon
+                        className={`w-4 h-4 ${
+                            (isFetching || isFetchingComments || isFetchingUserSubmissions) && 'animate-spin'
+                        }`}
+                    />
                 </button>
             </div>
-            <table className={`text-xs bg-gray-100 w-full ${(loading || refreshing) && 'text-gray-400'}`}>
+            <table
+                className={`text-xs bg-gray-100 w-full ${
+                    (isFetching || isFetchingComments || isFetchingUserSubmissions) && 'text-gray-400'
+                }`}
+            >
                 <thead>
                     <tr>
                         <th className="px-2 py-1 border-2 border-l-0 border-white">#</th>
@@ -136,7 +133,7 @@ const Item: NextPage = () => {
                                 )}
                             </td>
                             <td className="px-2 py-1 border-2 border-r-0 border-white text-center">
-                                {commentCounts[i]}
+                                {(userSubmissions || [])[i]}
                             </td>
                         </tr>
                     ))}

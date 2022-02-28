@@ -1,6 +1,6 @@
 import { getHNItem, getHNTopStories, getHNUser } from '../api/hacker-news';
 
-export const getTopNHNStories = async (n: number) => {
+export const getTopHNNStories = async (n: number) => {
     const data = await getHNTopStories();
 
     const itemIds = data.slice(0, n);
