@@ -61,7 +61,7 @@ const Home: NextPage = () => {
                                 </div>
                                 <div className="text-xs text-gray-400">by: {story.by}</div>
                             </td>
-                            <td className="px-2 py-1 border-2 border-white text-right">{story.descendants}</td>
+                            <td className="px-2 py-1 border-2 border-white text-right">{(story.kids || []).length}</td>
                             <td className="px-2 py-1 border-2 border-r-0 border-white text-center">
                                 <a
                                     href={story.url}
