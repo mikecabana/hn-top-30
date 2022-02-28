@@ -7,6 +7,7 @@ import { getHNStoryComments, getHNUserSubmittedCount } from '../lib/services/hn-
 import ReactTooltip from 'react-tooltip';
 import Head from 'next/head';
 import { useQuery } from 'react-query';
+import { useEffect } from 'react';
 
 const Item: NextPage = () => {
     const router = useRouter();
@@ -18,8 +19,6 @@ const Item: NextPage = () => {
         () => getHNItem(parseInt(id as string, 10)),
         {
             onSuccess: (item) => {
-                ReactTooltip.rebuild();
-
                 // I suspect we need to wait for the next event loop to call `refetchComments`.
                 // Needs investigating as to why `get-top-10-comments-${id}` query doesn't run.
                 setTimeout(() => refetchComments(), 1);
@@ -35,7 +34,8 @@ const Item: NextPage = () => {
         isLoading: isLoadingComments,
     } = useQuery(`get-top-10-comments-${id}`, () => getHNStoryComments(data?.kids || [], 10), {
         onSuccess: () => {
-            refetchUserSubmissions();
+            // See comment above
+            setTimeout(() => refetchUserSubmissions(), 1);
         },
         enabled: !!data,
     });
@@ -61,6 +61,10 @@ const Item: NextPage = () => {
             enabled: !!comments,
         }
     );
+
+    useEffect(() => {
+        ReactTooltip.rebuild();
+    }, [data]);
 
     return (
         <Layout>
@@ -88,7 +92,9 @@ const Item: NextPage = () => {
                     disabled={isFetching || isFetchingComments || isFetchingUserSubmissions}
                     data-tip={`Last refresh ${dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleString() : 'never'}`}
                 >
-                    <span className="mr-2">Refresh</span>{' '}
+                    <span className="mr-2">
+                        {isFetching || isFetchingComments || isFetchingUserSubmissions ? 'Refreshing' : 'Refresh'}
+                    </span>{' '}
                     <RefreshIcon
                         className={`w-4 h-4 ${
                             (isFetching || isFetchingComments || isFetchingUserSubmissions) && 'animate-spin'
@@ -96,11 +102,7 @@ const Item: NextPage = () => {
                     />
                 </button>
             </div>
-            <table
-                className={`text-xs bg-gray-100 w-full ${
-                    (isFetching || isFetchingComments || isFetchingUserSubmissions) && 'text-gray-400'
-                }`}
-            >
+            <table className={`text-xs bg-gray-100 w-full `}>
                 <thead>
                     <tr>
                         <th className="px-2 py-1 border-2 border-l-0 border-white">#</th>

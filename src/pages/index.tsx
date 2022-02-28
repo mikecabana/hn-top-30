@@ -1,7 +1,6 @@
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Layout } from '../components/Layout';
-import { HNItem } from '../lib/models/hacker-news/hn-item.interface';
 import { getTopHNNStories } from '../lib/services/hn-stories';
 import { ExternalLinkIcon, RefreshIcon } from '@heroicons/react/outline';
 import Link from 'next/link';
@@ -11,9 +10,13 @@ import { NextPage } from 'next';
 import { useQuery } from 'react-query';
 
 const Home: NextPage = () => {
-    const { data, refetch, isFetching, isLoading, dataUpdatedAt } = useQuery('get-stories-top-30', () => getTopHNNStories(30), {
-        onSuccess: () => ReactTooltip.rebuild(),
-    });
+    const { data, refetch, isFetching, isLoading, dataUpdatedAt } = useQuery('get-stories-top-30', () =>
+        getTopHNNStories(30)
+    );
+
+    useEffect(() => {
+        ReactTooltip.rebuild();
+    }, [data]);
 
     return (
         <Layout>
